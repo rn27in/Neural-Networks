@@ -1,0 +1,19 @@
+### Non-regularized Cost function for Neural Networks###
+
+y_mat <- matrix(0, nrow = nrow(data_x), ncol = 10)
+
+for( i in 1:nrow(data_x))
+{
+  a <- data_y[i,1]
+  y_mat[i,a] <- 1
+  
+}
+
+
+cost_function_nn <- function(a3,y_mat)
+{
+  
+  -1/(nrow(a3)) *sum(y_mat * log(a3) + (1-y_mat)* log(1-a3))
+  
+  
+}
