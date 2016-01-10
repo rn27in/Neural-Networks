@@ -1,4 +1,45 @@
-### Non-regularized Cost function for Neural Networks###
+
+
+library(R.matlab)
+
+###Creating the Feed forward Network Assuming Theta1 and Theta2 have been trained.
+
+
+data <- readMat("..../mlclass-ex4/ex4data1.mat")
+weights_initial <- readMat("...../mlclass-ex4/ex4weights.mat")
+weights_initial_Theta1 <- data.frame(weights_initial$Theta1)
+weights_initial_Theta2 <- data.frame(weights_initial$Theta2)
+
+
+data_x <- data.frame(data$X)
+
+###Adding bias unit in the first layer
+data_x <- data.frame(cbind(as.vector(rep(1, nrow(data_x))),data_x) )
+colnames(data_x)[1] <- c("bias")
+
+data_y <- data.frame(data$y)
+
+nrow(data_x)
+
+sigmoid_function <- function(z)
+{
+  return(1/(1+exp(-z)))
+  
+}
+
+
+###Transformed Xs using Thetas  Weights * T in the second layer
+z2 <- as.matrix(data_x) %*% t(as.matrix(weights_initial_Theta1))
+##Activation in the second layer
+a2 <- sigmoid_function(z2)
+
+##Adding a bias unit to all the training records
+z2  <- as.matrix(cbind(as.vector(rep(1, nrow(a2))),a2))
+###Transformed Xs using Thetas  Weights * T in the second layer
+z3 <- as.matrix(z2) %*% t(as.matrix(weights_initial_Theta2))
+
+###Activation in the third layer
+a3 <- sigmoid_function(z3)
 
 y_mat <- matrix(0, nrow = nrow(data_x), ncol = 10)
 
@@ -9,11 +50,10 @@ for( i in 1:nrow(data_x))
   
 }
 
-
+### Non-regularized Cost function for Neural Networks###
 cost_function_nn <- function(a3,y_mat)
 {
   
   -1/(nrow(a3)) *sum(y_mat * log(a3) + (1-y_mat)* log(1-a3))
-  
-  
+
 }
