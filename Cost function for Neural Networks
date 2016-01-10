@@ -57,3 +57,17 @@ cost_function_nn <- function(a3,y_mat)
   -1/(nrow(a3)) *sum(y_mat * log(a3) + (1-y_mat)* log(1-a3))
 
 }
+##Cost = 0.2876292 for unregularized cost function as per the  exercise document
+
+weights_initial_Theta1_reg <- weights_initial_Theta1[2:ncol(weights_initial_Theta1)]
+
+weights_initial_Theta2_reg <- weights_initial_Theta2[2:ncol(weights_initial_Theta2)]
+
+cost_function_nn_regularized <- function(a3,y_mat,lambda)
+{
+  
+  -1/(nrow(a3)) *sum(y_mat * log(a3) + (1-y_mat)* log(1-a3)) + lambda/(2*nrow(a3))* (sum((weights_initial_Theta1_reg)^2) + sum((weights_initial_Theta2_reg)^2))
+  
+  
+}
+##For lambda = 1 Cost  is 0.3837699 as per the  exercise document
