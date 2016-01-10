@@ -1,6 +1,7 @@
 library(R.matlab)
 
-###Creating the Feed forward Network Assuming Theta1 and Theta2 have been trained
+###Creating the Feed forward Network Assuming Theta1 and Theta2 have been trained.
+##This is like Predicting the results assuming Thetas(weights) have been trained
 
 data <- readMat("..../mlclass-ex4/ex4data1.mat")
 weights_initial <- readMat("...../mlclass-ex4/ex4weights.mat")
