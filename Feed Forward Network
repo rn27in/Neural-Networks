@@ -1,3 +1,5 @@
+####This is for the predict function for Ex3 ML Coursera Neural Networks
+
 library(R.matlab)
 
 ###Creating the Feed forward Network Assuming Theta1 and Theta2 have been trained.
