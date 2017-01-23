@@ -1,0 +1,237 @@
+############This Neural network assumes just one hidden layer#######################################
+
+rm(list = ls())
+library(R.matlab)
+
+####Loading the data################
+data <- readMat("../ex4data1.mat")
+data_x <- data.frame(data$X)
+data_y <- data.frame(data$y)
+
+###Create 10 outputs for dependent y ###
+
+y_vec = matrix(0, nrow = 10, ncol = dim(data_x)[1])
+for( i in 1:dim(data_x)[1])
+{
+  print(i)
+  if(data_y[i,1]>=1 & data_y[i,1] <=9 ){
+    y_vec[data_y[i,1],i] = 1}
+  
+  else{
+    y_vec[10,i] = 1
+  }
+  
+}
+
+y_vec <- t(y_vec)
+
+##Creating final dataset########################
+data_final <- cbind(data_x,y_vec)
+
+#######################################Weights Initialization############################################
+
+weights_initialization <- function(input, hidden, output)
+{
+vec <- c(input, hidden,output)
+weights <- list()
+for( i in 1:2)
+{
+  
+weights[[i]] <- matrix(rnorm(vec[i]*vec[i+1], 0,1),nrow = vec[i], ncol = vec[i+1])
+}
+
+names(weights) <- c("Weights_1", "Weights_2")
+
+bias <- list()
+
+for( i in 1:2)
+  
+{
+  bias[[i]] <- matrix(rnorm(vec[i+1], 0,1),nrow = vec[i+1], ncol = 1)
+  
+}
+names(bias) <- c("Bias_1", "Bias_2")
+
+return(list(bias, weights))
+
+}
+#####################################################################################################################
+
+###########################Sigmoid function###################
+sigmoid <- function(z)
+{
+  return(1/(1+exp(-z)))
+}
+
+##################Sigmoid Prime(Derivative of Sigmoid function)#########################
+sigmoid_prime <- function(z)
+{
+  return(sigmoid(z) * (1-sigmoid(z)))
+}
+
+feedforward <- function(x,weights_r,bias_r)
+{
+  
+  results_activation <- matrix(0, nrow = dim(y_vec)[2], ncol = dim(x)[1])
+  x <- as.matrix(x)
+  for( i in 1:nrow(x))
+  {
+    print(i)
+  activation <- sigmoid(t((x[i,1:400]) %*% weights_r[[1]]) + bias_r[[1]])
+  
+  activation <- sigmoid(t(weights_r[[2]]) %*% activation + bias_r[[2]])
+  
+  results_activation[,i] <- activation
+  }
+
+return(results_activation)    
+}
+
+####################Evaluating accuracy of model##############################################
+accuracy <- function(res,y){
+temp <- apply(res, MARGIN = 2, function(x){which(x == max(x))})
+
+return(sum((temp == y))/length(y))
+}
+###############################################################################################
+
+
+#####Derivative of Cost with respect to activation#############################
+cost_derivative <- function(activation,y)
+{
+  return(activation-y)
+}
+###############################################################################
+
+
+#########Implementation of Stochastic Gradient Descent with Minibatches##############################################
+sgd <- function(training_data,epochs,mini_batch_size, eta,weights, bias, dim_input, dim_output, test_data = FALSE)
+{
+
+for(i in 1:epochs)
+  {
+    print(paste0('Epoch No ',i))
+    ###Shuffle Training data######
+    temp_train <- training_data[sample(1:nrow(training_data)),]
+    ######Define minibatch from the Training data########
+    minibatches = list()
+    for( j in 1:(nrow(temp_train)/mini_batch_size))
+      
+    {
+      if(j == 1){
+      minibatches[[j]] <- temp_train[j:(mini_batch_size),]
+      }
+    else if((j > 1 & j <= (nrow(temp_train)/mini_batch_size))){
+      minibatches[[j]] <- temp_train[(((j-1)*mini_batch_size)+1):(j *mini_batch_size),]
+        }
+      
+      else{
+        minibatches[[j]] <- temp_train[(((nrow(temp_train)/mini_batch_size) *mini_batch_size)+1) :nrow(temp_train),]
+        
+      }
+    }
+  ###################End of building minibatches using stochastic process#####################
+  
+    #####Start of updating weights for using each of the minibatch######################  
+###For every record in minibatch, we need to find the gradient which is computationally expensive#####
+for(z in 1: (nrow(temp_train)/mini_batch_size))
+{
+  #print(paste0('You are in Minibatch ',z))
+  ###Initialize gradients to zero for each batch of minibatch####################
+  nabla_b <- list(b1 = matrix(0,nrow = dim(bias[[1]])[1], ncol = dim(bias[[1]])[2]), b2 = matrix(0,nrow = dim(bias[[2]])[1], ncol = dim(bias[[2]])[2]))
+  nabla_w <- list(w1 = matrix(0,nrow = dim(weights[[1]])[1], ncol = dim(weights[[1]])[2]), w2 = matrix(0,nrow = dim(weights[[2]])[1], ncol = dim(weights[[2]])[2]))  
+  
+      for(t in 1: dim(minibatches[[z]])[1])
+      {
+      temp <-  backprop(as.matrix(minibatches[[z]][t,]),dim_input,dim_output,weights,bias)
+    
+      nabla_b[[1]] <- nabla_b[[1]] + temp[[1]][['b1']]
+      nabla_b[[2]] <- nabla_b[[2]] + temp[[1]][['b2']]
+      
+      nabla_w[[1]] <- nabla_w[[1]] + temp[[2]][['w1']]
+      nabla_w[[2]] <- nabla_w[[2]] + temp[[2]][['w2']]
+    
+      }    
+
+  ###Weights are updated after calculating the final gradients of each mini-batch##################
+        weights[[1]] <- weights[[1]] - (eta/dim(minibatches[[z]])[1])*nabla_w[[1]]
+        weights[[2]] <- weights[[2]] - (eta/dim(minibatches[[z]])[1])*nabla_w[[2]]
+        bias[[1]] <- bias[[1]] - (eta/dim(minibatches[[z]])[1])*nabla_b[[1]]
+        bias[[2]] <- bias[[2]] - (eta/dim(minibatches[[z]])[1])*nabla_b[[2]]
+    
+}
+}
+return(list(bias,weights))
+  
+}
+
+#####################What happens internally in backprop??#########################
+
+###########Backpropagation algorithm from scratch####################################################
+
+backprop <- function(x,dim_input,dim_output,weights,bias)
+{
+single_x <- as.matrix(x[1,1:dim_input])
+single_y <- as.matrix(x[1,((dim_input+1):(dim_input+dim_output))])
+
+######FeedForward Network###################
+zs = list()
+activations = list()
+z <-  (t(weights[[1]]) %*% single_x) + bias[[1]]
+zs[[1]] <- z
+activation <- sigmoid(z)
+activations[[1]] <- activation
+
+z <-  (t(weights[[2]]) %*% activations[[1]]) + bias[[2]]
+activation <- sigmoid(z)
+
+zs[[2]] <- z
+activations[[2]] <- activation
+
+#####Error in output layer###################
+
+delta <- cost_derivative(activations[[2]],(single_y)) * sigmoid_prime(zs[[2]])
+
+nabla_b <- list(b1 = matrix(0,nrow = dim(bias[[1]])[1], ncol = dim(bias[[1]])[2]), b2 = matrix(0,nrow = dim(bias[[2]])[1], ncol = dim(bias[[2]])[2]))
+nabla_w <- list(w1 = matrix(0,nrow = dim(weights[[1]])[1], ncol = dim(weights[[1]])[2]), w2 = matrix(0,nrow = dim(weights[[2]])[1], ncol = dim(weights[[2]])[2]))
+
+##Change in cost when bias is changed################
+nabla_b[[2]] = delta
+###Change in cost when input weight is changed##########
+nabla_w[[2]] = activations[[1]] %*% t(delta)
+
+###Error in hidden layer####################
+delta = (weights[[2]] %*% (delta)) * sigmoid_prime(zs[[1]])
+##Change in cost when bias is changed################
+nabla_b[[1]] = delta
+###Change in cost when input weight is changed##########
+nabla_w[[1]] = (single_x %*% t(delta)) 
+
+return(list(nabla_b, nabla_w))
+
+}
+
+################Time for function calls############################################################################
+
+###Initialize weights and bias for hidden and output layer###################################
+results <- weights_initialization(400,30,10)
+bias <- results[[1]]
+weights <- results[[2]]
+
+###Get the optimized weights and bias############################
+backprop_results <- sgd(data_final,epochs = 10, mini_batch_size = 20, eta = 3,weights,bias,dim_input = dim(data_x)[2],dim_output = 10,FALSE)
+bias_revised <- backprop_results[[1]]
+weights_revised <- backprop_results[[2]]
+
+#######Run the model on new set of data######
+###Here I am testing the model on the same set of data#######################
+res <- feedforward(data_final[1:5000,],weights_revised,bias_revised)
+acc <- accuracy(res,y)
+
+print acc ###93.8% accuracy#############This can be optimized further based no of neurons in hidden layer, epochs and learning rate####
+
+########################The End####################################################################
+
+
+
+
